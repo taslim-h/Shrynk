@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QProgressBar,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -183,25 +184,27 @@ class CompressTab(QWidget):
 
     def _build_results_section(self) -> QWidget:
         frame = QFrame()
-        frame.setStyleSheet(
-            f"background: {BG_SURFACE}; border: 1px solid {BORDER}; border-radius: 8px;"
-        )
+        frame.setObjectName("resultsCard")
         outer = QVBoxLayout(frame)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
 
         header = QLabel("Results")
-        header.setStyleSheet(
-            f"background: {BG_INPUT}; border-bottom: 1px solid {BORDER}; color: {TEXT_SECONDARY}; font-size: 11px; font-weight: 500; padding: 10px 12px;"
-        )
+        header.setObjectName("resultsHeader")
         outer.addWidget(header)
 
+        self.results_scroll = QScrollArea()
+        self.results_scroll.setObjectName("resultsScroll")
+        self.results_scroll.setWidgetResizable(True)
+        self.results_scroll.setFrameShape(QFrame.NoFrame)
+        outer.addWidget(self.results_scroll, 1)
+
         self.results_body = QWidget()
-        self.results_body.setStyleSheet(f"background: {BG_SURFACE};")
+        self.results_body.setObjectName("resultsBody")
         self.results_layout = QVBoxLayout(self.results_body)
         self.results_layout.setContentsMargins(12, 12, 12, 12)
         self.results_layout.setSpacing(10)
-        outer.addWidget(self.results_body, 1)
+        self.results_scroll.setWidget(self.results_body)
         return frame
 
     def _section_label(self, text: str) -> QLabel:
@@ -327,6 +330,7 @@ class CompressTab(QWidget):
             widget = item.widget()
             if widget is not None:
                 widget.deleteLater()
+        self.results_scroll.verticalScrollBar().setValue(0)
 
     def _show_error(self, message: str) -> None:
         self._set_progress(0, "")
@@ -347,13 +351,19 @@ class CompressTab(QWidget):
         output_name = Path(result["output_path"]).name
         input_size = result["input_size"]
         output_size = result["output_size"]
-        saved = input_size - output_size
-        smaller = (saved / input_size * 100.0) if input_size else 0.0
+        delta = input_size - output_size
+        ratio = (abs(delta) / input_size * 100.0) if input_size else 0.0
+        delta_text = format_size(abs(delta))
+        trend_text = f"({ratio:.1f}% smaller)"
+        trend_color = TEXT_SUCCESS
+        if delta < 0:
+            trend_text = f"({ratio:.1f}% larger)"
+            trend_color = TEXT_ERROR
 
         for label, value, extra, accent in [
             ("Input", input_name, format_size(input_size), TEXT_PRIMARY),
             ("Output", output_name, format_size(output_size), TEXT_PRIMARY),
-            ("Saved", format_size(saved), f"({smaller:.1f}% smaller)", TEXT_SUCCESS),
+            ("Saved", delta_text, trend_text, trend_color),
             ("Time", f"{result['elapsed']:.2f}s", "", TEXT_PRIMARY),
         ]:
             self.results_layout.addWidget(self._result_row(label, value, extra, accent))
@@ -389,13 +399,15 @@ class CompressTab(QWidget):
 
         value_label = QLabel(value)
         value_label.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 12px;")
+        value_label.setWordWrap(True)
 
         extra_label = QLabel(extra)
         extra_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         extra_label.setStyleSheet(f"color: {value_color}; font-size: 12px;")
+        extra_label.setWordWrap(True)
 
         layout.addWidget(label)
-        layout.addWidget(value_label)
+        layout.addWidget(value_label, 1)
         layout.addStretch(1)
         layout.addWidget(extra_label)
         return row

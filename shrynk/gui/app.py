@@ -1,8 +1,9 @@
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMainWindow,
+    QTabBar,
     QTabWidget,
     QVBoxLayout,
     QWidget,
@@ -13,11 +14,23 @@ from shrynk.gui.decompress_tab import DecompressTab
 from shrynk.gui.theme import BG_INPUT, BORDER, TEXT_ACCENT, TEXT_PRIMARY, TEXT_SECONDARY
 
 
+class EqualWidthTabBar(QTabBar):
+    def tabSizeHint(self, index: int) -> QSize:
+        size = super().tabSizeHint(index)
+        count = max(1, self.count())
+        parent = self.parentWidget()
+        available_width = max(0, parent.width() if parent is not None else self.width())
+        if available_width:
+            size.setWidth(max(size.width(), available_width // count))
+        return size
+
+
 class ShrynkWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("Shrynk")
-        self.setFixedSize(520, 620)
+        self.resize(640, 760)
+        self.setMinimumSize(560, 680)
 
         container = QWidget()
         layout = QVBoxLayout(container)
@@ -27,6 +40,9 @@ class ShrynkWindow(QMainWindow):
         layout.addWidget(self._build_header())
 
         tabs = QTabWidget()
+        tabs.setTabBar(EqualWidthTabBar())
+        tabs.tabBar().setExpanding(True)
+        tabs.tabBar().setUsesScrollButtons(False)
         tabs.addTab(CompressTab(), "Compress")
         tabs.addTab(DecompressTab(), "Decompress")
         layout.addWidget(tabs)
@@ -36,7 +52,7 @@ class ShrynkWindow(QMainWindow):
 
     def _build_header(self) -> QWidget:
         header = QWidget()
-        header.setStyleSheet(f"border-bottom: 1px solid {BORDER};")
+        header.setObjectName("appHeader")
 
         wrapper = QHBoxLayout(header)
         wrapper.setContentsMargins(20, 16, 20, 14)

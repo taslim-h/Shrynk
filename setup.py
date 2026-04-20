@@ -7,7 +7,7 @@ setup(
     packages=find_packages(),
     entry_points={
         "console_scripts": [
-            "shrynk=main:main",
+            "shrynk=shrynk.cli:main",
         ],
     },
     install_requires=["PyQt5"],

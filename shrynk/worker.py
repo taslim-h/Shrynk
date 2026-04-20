@@ -7,7 +7,7 @@ from typing import Dict
 
 from PyQt5.QtCore import QThread, pyqtSignal
 
-from shrynk.core.fileio import read_huf, write_huf
+from shrynk.core.fileio import estimate_huf_size, read_huf, write_huf
 from shrynk.core.huffman import (
     build_code_table,
     build_frequency_table,
@@ -54,6 +54,13 @@ class CompressWorker(QThread):
 
             self.progress.emit(85, "Encoding file...")
             encoded_bits = encode(text, code_table)
+            input_size = os.path.getsize(self.input_path)
+            estimated_output_size = estimate_huf_size(len(text), tree_root, encoded_bits)
+            if estimated_output_size >= input_size:
+                raise ValueError(
+                    f"Compression would increase size ({format_size(input_size)} -> {format_size(estimated_output_size)}). "
+                    "This file is too small or not repetitive enough."
+                )
 
             self.progress.emit(100, "Writing output...")
             write_huf(self.output_path, len(text), tree_root, encoded_bits)
@@ -62,7 +69,7 @@ class CompressWorker(QThread):
                 {
                     "input_path": self.input_path,
                     "output_path": self.output_path,
-                    "input_size": os.path.getsize(self.input_path),
+                    "input_size": input_size,
                     "output_size": os.path.getsize(self.output_path),
                     "elapsed": time.perf_counter() - started,
                     "top_chars": top_n_chars(freq_table),

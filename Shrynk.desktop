@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Shrynk
+Comment=Lossless text file compression
+Exec=/home/mrrmr/project/Shrynk/.venv/bin/shrynk
+Path=/home/mrrmr/project/Shrynk
+Terminal=false
+Categories=Utility;

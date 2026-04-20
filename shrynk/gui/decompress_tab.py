@@ -14,11 +14,12 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QProgressBar,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
-from shrynk.gui.theme import BG_INPUT, BG_SURFACE, BORDER, TEXT_ACCENT, TEXT_ERROR, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_SUCCESS
+from shrynk.gui.theme import TEXT_ACCENT, TEXT_ERROR, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_SUCCESS
 from shrynk.worker import DecompressWorker, format_size
 
 
@@ -126,25 +127,27 @@ class DecompressTab(QWidget):
 
     def _build_results_section(self) -> QWidget:
         frame = QFrame()
-        frame.setStyleSheet(
-            f"background: {BG_SURFACE}; border: 1px solid {BORDER}; border-radius: 8px;"
-        )
+        frame.setObjectName("resultsCard")
         outer = QVBoxLayout(frame)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
 
         header = QLabel("Results")
-        header.setStyleSheet(
-            f"background: {BG_INPUT}; border-bottom: 1px solid {BORDER}; color: {TEXT_SECONDARY}; font-size: 11px; font-weight: 500; padding: 10px 12px;"
-        )
+        header.setObjectName("resultsHeader")
         outer.addWidget(header)
 
+        self.results_scroll = QScrollArea()
+        self.results_scroll.setObjectName("resultsScroll")
+        self.results_scroll.setWidgetResizable(True)
+        self.results_scroll.setFrameShape(QFrame.NoFrame)
+        outer.addWidget(self.results_scroll, 1)
+
         self.results_body = QWidget()
-        self.results_body.setStyleSheet(f"background: {BG_SURFACE};")
+        self.results_body.setObjectName("resultsBody")
         self.results_layout = QVBoxLayout(self.results_body)
         self.results_layout.setContentsMargins(12, 12, 12, 12)
         self.results_layout.setSpacing(10)
-        outer.addWidget(self.results_body, 1)
+        self.results_scroll.setWidget(self.results_body)
         return frame
 
     def _section_label(self, text: str) -> QLabel:
@@ -278,6 +281,7 @@ class DecompressTab(QWidget):
             widget = item.widget()
             if widget is not None:
                 widget.deleteLater()
+        self.results_scroll.verticalScrollBar().setValue(0)
 
     def _show_error(self, message: str) -> None:
         self._set_progress(0, "")
@@ -304,12 +308,14 @@ class DecompressTab(QWidget):
 
         value_label = QLabel(value)
         value_label.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 12px;")
+        value_label.setWordWrap(True)
 
         extra_label = QLabel(extra)
         extra_label.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 12px;")
+        extra_label.setWordWrap(True)
 
         layout.addWidget(label)
-        layout.addWidget(value_label)
+        layout.addWidget(value_label, 1)
         layout.addStretch(1)
         layout.addWidget(extra_label)
         return row
